@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
@@ -36,7 +37,12 @@ class PokerGame:
     - resolves the pot at showdown
     """
 
-    def __init__(self, num_players: int = 2, config: Optional[GameConfig] = None) -> None:
+    def __init__(
+        self,
+        num_players: int = 2,
+        config: Optional[GameConfig] = None,
+        seed: Optional[int] = None,
+    ) -> None:
         if num_players < 2 or num_players > 4:
             raise ValueError("Supports 2–4 players")
         self.config = config or GameConfig(num_players=num_players)
@@ -44,14 +50,21 @@ class PokerGame:
             Player(name=f"Player {i+1}", stack=self.config.starting_stack, index=i)
             for i in range(self.config.num_players)
         ]
-        self.strategies = {p.index: RandomStrategy() for p in self.players}
+        self._deck_rng = random.Random(seed)
+        self._strategy_rng = random.Random(None if seed is None else seed + 1)
+        self.strategies = {p.index: RandomStrategy(self._strategy_rng) for p in self.players}
         # Seat 0 is the Expectiminimax AI by default
-        self.ai = ExpectiminimaxAI(max_depth=2, num_samples=64)
+        self.ai = ExpectiminimaxAI(
+            max_depth=2,
+            num_samples=64,
+            rng=random.Random(None if seed is None else seed + 2),
+        )
         self.use_expectiminimax: bool = True
         self.state = GameState()
-        self.deck = Deck()
+        self.deck = Deck(self._deck_rng)
         # UI helpers: store a light-weight summary of the last completed hand
         self.last_hand_summary: Optional[dict] = None
+        self.hand_action_log: List[str] = []
         # Kid / interactive mode: stepwise betting (does not replace ``play_hand``)
         self.kid_interactive: bool = False
         self.kid_human_seat: int = self.config.num_players - 1
@@ -59,7 +72,8 @@ class PokerGame:
         self.kid_stack_at_hand_start: Optional[List[int]] = None
 
     def start_new_hand(self) -> None:
-        self.deck = Deck()
+        self.deck = Deck(self._deck_rng)
+        self.hand_action_log = []
         self.state = GameState(
             community_cards=[],
             pot=0,
@@ -77,6 +91,10 @@ class PokerGame:
             p.hole_cards = (cards[0], cards[1])
 
         self._post_blinds()
+        self._log(f"New hand started. Dealer: {self.players[self.state.dealer_index].name}")
+
+    def _log(self, message: str) -> None:
+        self.hand_action_log.append(message)
 
     def _active_players(self) -> List[Player]:
         """Players still contesting the pot (not folded). All‑in players with 0 chips remain in."""
@@ -114,6 +132,8 @@ class PokerGame:
         self.state.pot += sb + bb
 
         self.state.current_player_index = (bb_index + 1) % n
+        self._log(f"{small_blind_player.name} posts small blind {sb}")
+        self._log(f"{big_blind_player.name} posts big blind {bb}")
 
     def _distribute_pot(self, winners: List[Player], contested_pot: int) -> None:
         """Move all contested chips from the pot into winners' stacks (split + remainder)."""
@@ -210,6 +230,7 @@ class PokerGame:
 
     def _run_betting_round(self) -> None:
         """Run a single betting round with naive logic (no side pots)."""
+        self._log(f"{self.state.stage.upper()} betting round begins")
         highest_bet = max(p.current_bet for p in self.players)
         players_to_act = [p for p in self.players if not p.has_folded and not p.is_all_in]
         if len(players_to_act) <= 1:
@@ -261,17 +282,23 @@ class PokerGame:
 
                     if action == "fold":
                         player.has_folded = True
+                        self._log(f"{player.name}: fold")
                     elif action in ("call", "check"):
                         bet = call_amount
                         player.stack -= bet
                         player.current_bet += bet
                         self.state.pot += bet
+                        if action == "check":
+                            self._log(f"{player.name}: check")
+                        else:
+                            self._log(f"{player.name}: call {bet}")
                     elif action == "raise" and amount is not None:
                         bet = min(amount, player.stack)
                         player.stack -= bet
                         player.current_bet += bet
                         self.state.pot += bet
                         highest_bet = player.current_bet
+                        self._log(f"{player.name}: raise to {player.current_bet}")
                         # After a raise, everyone needs to act again
                         acted = [False] * self.config.num_players
 
@@ -325,6 +352,7 @@ class PokerGame:
         # Flop
         self.state.stage = "flop"
         self.deal_community_cards(3)
+        self._log("Flop dealt")
         self._run_betting_round()
         if len(self._active_players()) == 1:
             return self._finish_hand(self._active_players())
@@ -332,6 +360,7 @@ class PokerGame:
         # Turn
         self.state.stage = "turn"
         self.deal_community_cards(1)
+        self._log("Turn dealt")
         self._run_betting_round()
         if len(self._active_players()) == 1:
             return self._finish_hand(self._active_players())
@@ -339,13 +368,16 @@ class PokerGame:
         # River
         self.state.stage = "river"
         self.deal_community_cards(1)
+        self._log("River dealt")
         self._run_betting_round()
         if len(self._active_players()) == 1:
             return self._finish_hand(self._active_players())
 
         # Showdown
         self.state.stage = "showdown"
+        self._log("Showdown")
         winners = self.showdown()
+        self._log("Winner(s): " + ", ".join(w.name for w in winners))
         return self._finish_hand(winners)
 
     # --- Kid / interactive stepping (layer on top; ``play_hand`` unchanged) ----
@@ -413,11 +445,16 @@ class PokerGame:
             raise ValueError(f"Illegal action {action!r} for {player.name}; legal={legal}")
         if action == "fold":
             player.has_folded = True
+            self._log(f"{player.name}: fold")
         elif action in ("call", "check"):
             bet = call_amount
             player.stack -= bet
             player.current_bet += bet
             self.state.pot += bet
+            if action == "check":
+                self._log(f"{player.name}: check")
+            else:
+                self._log(f"{player.name}: call {bet}")
         elif action == "raise":
             if amount is None:
                 raise ValueError("raise requires amount")
@@ -426,6 +463,7 @@ class PokerGame:
             player.current_bet += bet
             self.state.pot += bet
             highest_holder[0] = player.current_bet
+            self._log(f"{player.name}: raise to {player.current_bet}")
         if player.stack == 0:
             player.is_all_in = True
 
@@ -504,15 +542,20 @@ class PokerGame:
         if stage == "preflop":
             self.state.stage = "flop"
             self.deal_community_cards(3)
+            self._log("Flop dealt")
         elif stage == "flop":
             self.state.stage = "turn"
             self.deal_community_cards(1)
+            self._log("Turn dealt")
         elif stage == "turn":
             self.state.stage = "river"
             self.deal_community_cards(1)
+            self._log("River dealt")
         elif stage == "river":
             self.state.stage = "showdown"
+            self._log("Showdown")
             winners = self.showdown()
+            self._log("Winner(s): " + ", ".join(w.name for w in winners))
             self._finish_hand(winners)
             self.kid_interactive = False
             self._kid_br = None

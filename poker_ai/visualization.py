@@ -284,6 +284,18 @@ def inject_styles() -> None:
         .ph-nameplate--folded {
             opacity: 0.55;
         }
+        .ph-ai-tag {
+            margin-left: 0.35rem;
+            padding: 0.08rem 0.35rem;
+            border-radius: 999px;
+            font-size: 0.62rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            background: rgba(56, 189, 248, 0.22);
+            border: 1px solid rgba(56, 189, 248, 0.65);
+            color: #e0f2fe;
+            vertical-align: middle;
+        }
 
         .ph-dealer {
             position: absolute;
@@ -637,6 +649,8 @@ def _seat_block_html(player, *, is_user: bool, dealer_index: int, reveal_opponen
     fold_wm = '<div class="ph-fold-watermark">Fold</div>' if folded else ""
     seat_cls = "ph-seat" + (" ph-seat--user" if is_user else "")
     label = "You" if is_user else safe_name
+    if p.index == 0:
+        label += '<span class="ph-ai-tag">Expectiminimax</span>'
     return (
         f'<div class="{seat_cls}">'
         f"{fold_wm}"
@@ -724,15 +738,17 @@ def render_table(game: PokerGame, beginner_mode: bool = False) -> None:
 
     if getattr(game, "kid_interactive", False):
         kid_actions = ""
-        kid_note = '<p class="ph-action-note">Use the big buttons under the table in the Kid Play tab.</p>'
+        kid_note = '<p class="ph-action-note">Use the action buttons on the right to play your turn.</p>'
     else:
-        kid_actions = """
-      <div class="ph-actions">
-        <span class="ph-action-pill">Fold</span>
-        <span class="ph-action-pill">Check</span>
-        <span class="ph-action-pill">Raise</span>
-      </div>
-      <p class="ph-action-note">Hands run automatically here; use the sidebar to play a new hand.</p>"""
+        # Keep HTML left-aligned; markdown treats 4+ leading spaces as a code block.
+        kid_actions = (
+            '<div class="ph-actions">'
+            '<span class="ph-action-pill">Fold</span>'
+            '<span class="ph-action-pill">Check</span>'
+            '<span class="ph-action-pill">Raise</span>'
+            "</div>"
+            '<p class="ph-action-note">Hands run automatically here; use the sidebar to play a new hand.</p>'
+        )
         kid_note = ""
 
     full = f"""
@@ -760,9 +776,9 @@ def render_table(game: PokerGame, beginner_mode: bool = False) -> None:
         <div class="ph-pot-label">Pot</div>
       </div>
       <div class="ph-cards-row">{board_html}</div>
-      {felt_hint}
-      {user_block}
-      {kid_actions}{kid_note}
+{felt_hint}
+{user_block}
+{kid_actions}{kid_note}
     </div>
   </div>
 </div>

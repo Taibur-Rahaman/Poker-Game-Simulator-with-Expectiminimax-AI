@@ -562,6 +562,15 @@ def render_kid_play_tab(game: PokerGame) -> None:
             st.rerun()
 
     st.markdown("---")
+    with st.expander("Hand activity (both sides)", expanded=False):
+        action_log = getattr(game, "hand_action_log", [])
+        if action_log:
+            for i, line in enumerate(action_log, start=1):
+                st.write(f"{i}. {line}")
+        else:
+            st.caption("_Start a hand to see the move-by-move history._")
+
+    st.markdown("---")
     st.markdown("**Buddy’s last numbers (for grown-ups)**")
     analysis = getattr(game.ai, "last_root_analysis", [])
     if analysis:

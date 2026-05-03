@@ -1,4 +1,5 @@
 import streamlit as st
+import time
 
 from poker_ai.evaluation import run_simulation, summarize_results
 from poker_ai.game_engine import PokerGame
@@ -53,6 +54,16 @@ def render_new_player_help(game: PokerGame) -> None:
     )
 
 
+def resolve_manual_play_status(game: PokerGame, status: str) -> str:
+    """Advance streets until human turn or hand end for manual-vs-AI mode."""
+    s = status
+    guard = 0
+    while s == "round_complete" and game.kid_interactive and guard < 8:
+        s = game.kid_advance_street_or_end()
+        guard += 1
+    return s
+
+
 def main() -> None:
     st.set_page_config(page_title="Poker Game Simulator with Expectiminimax AI", layout="wide")
     inject_styles()
@@ -80,13 +91,114 @@ def main() -> None:
             samples = st.slider("Monte Carlo samples", min_value=16, max_value=256, value=64, step=16)
             game.ai.max_depth = depth
             game.ai.num_samples = samples
+            st.caption(
+                f"Coins now → Buddy: **{game.players[0].stack}** · You: **{game.players[-1].stack}**"
+            )
+            c_reset, c_add_buddy, c_add_you = st.columns(3)
+            with c_reset:
+                if st.button("Reset coins", use_container_width=True):
+                    for p in game.players:
+                        p.stack = game.config.starting_stack
+                    game.last_hand_summary = None
+                    game.hand_action_log = []
+                    st.session_state.last_winners = []
+                    st.rerun()
+            with c_add_buddy:
+                if st.button("+500 Buddy", use_container_width=True):
+                    game.players[0].stack += 500
+                    st.rerun()
+            with c_add_you:
+                if st.button("+500 You", use_container_width=True):
+                    game.players[-1].stack += 500
+                    st.rerun()
+            mode = st.radio(
+                "Play mode",
+                ["Manual vs AI (recommended)", "Auto hand (demo)"],
+                index=0,
+                help="Manual mode = you choose actions; AI controls the other side.",
+            )
+            manual_mode = mode.startswith("Manual")
 
-            if st.button("Play new hand"):
-                winners = game.play_hand()
-                st.session_state.last_winners = [w.name for w in winners]
+            if manual_mode:
+                if not game.kid_interactive:
+                    st.caption(
+                        "You are manual player. Opponent has `Expectiminimax` tag on table. "
+                        "Click start, then act each turn."
+                    )
+                    if st.button("Start manual hand", type="primary"):
+                        # If a player is busted, restart stacks for a fresh match before the next hand.
+                        if any(p.stack <= 0 for p in game.players):
+                            for p in game.players:
+                                p.stack = game.config.starting_stack
+                            game.last_hand_summary = None
+                            game.hand_action_log = []
+                            st.session_state.last_winners = []
+                        game.kid_configure(human_seat=len(game.players) - 1)
+                        status = game.kid_start_new_hand_interactive()
+                        status = resolve_manual_play_status(game, status)
+                        if not game.kid_interactive and game.last_hand_summary:
+                            winners = game.last_hand_summary.get("winners", [])
+                            st.session_state.last_winners = [
+                                game.players[i].name for i in winners if 0 <= i < len(game.players)
+                            ]
+                        st.rerun()
+                else:
+                    st.caption("Hand in progress: you play `You`; opponent uses `Expectiminimax`.")
+                    if game.kid_is_human_turn():
+                        legal, call_amount, min_raise, _max_raise, _to_call = game.kid_current_legal_bundle()
+                        c1, c2, c3 = st.columns(3)
+                        with c1:
+                            if st.button("Fold", disabled="fold" not in legal, use_container_width=True):
+                                status = game.kid_submit_engine_action("fold", None)
+                                status = resolve_manual_play_status(game, status)
+                                if not game.kid_interactive and game.last_hand_summary:
+                                    winners = game.last_hand_summary.get("winners", [])
+                                    st.session_state.last_winners = [
+                                        game.players[i].name for i in winners if 0 <= i < len(game.players)
+                                    ]
+                                st.rerun()
+                        with c2:
+                            can_stay = "check" in legal or "call" in legal
+                            if st.button("Check / Call", disabled=not can_stay, use_container_width=True):
+                                if "check" in legal:
+                                    act, amt = "check", None
+                                else:
+                                    act, amt = "call", call_amount
+                                status = game.kid_submit_engine_action(act, amt)
+                                status = resolve_manual_play_status(game, status)
+                                if not game.kid_interactive and game.last_hand_summary:
+                                    winners = game.last_hand_summary.get("winners", [])
+                                    st.session_state.last_winners = [
+                                        game.players[i].name for i in winners if 0 <= i < len(game.players)
+                                    ]
+                                st.rerun()
+                        with c3:
+                            if st.button("Raise", disabled="raise" not in legal, use_container_width=True):
+                                status = game.kid_submit_engine_action("raise", min_raise)
+                                status = resolve_manual_play_status(game, status)
+                                if not game.kid_interactive and game.last_hand_summary:
+                                    winners = game.last_hand_summary.get("winners", [])
+                                    st.session_state.last_winners = [
+                                        game.players[i].name for i in winners if 0 <= i < len(game.players)
+                                    ]
+                                st.rerun()
+                    else:
+                        st.info("Waiting for street transition...")
+            else:
+                if st.button("Play new hand"):
+                    winners = game.play_hand()
+                    st.session_state.last_winners = [w.name for w in winners]
 
             if "last_winners" in st.session_state:
                 st.markdown("**Last hand winners:** " + ", ".join(st.session_state.last_winners))
+
+            st.markdown("#### Hand activity (both sides)")
+            action_log = getattr(game, "hand_action_log", [])
+            if action_log:
+                for i, line in enumerate(action_log, start=1):
+                    st.write(f"{i}. {line}")
+            else:
+                st.caption("_Play a hand to see each move from both players._")
 
             st.markdown("---")
             st.markdown("**AI root decision analysis (estimated EV per action)**")
@@ -112,19 +224,26 @@ def main() -> None:
         compare_modes = st.checkbox("Compare with normal logic (side by side)", value=False)
         if st.button("Run simulation"):
             if compare_modes:
+                compare_seed = int(time.time() * 1000) % 1_000_000_000
                 df_ai = run_simulation(
                     num_hands=num_hands,
                     max_depth=depth,
                     num_samples=samples,
                     mode="expectiminimax",
+                    seed=compare_seed,
                 )
                 df_normal = run_simulation(
                     num_hands=num_hands,
                     max_depth=depth,
                     num_samples=samples,
                     mode="normal",
+                    seed=compare_seed,
                 )
-                st.session_state.sim_compare = {"expectiminimax": df_ai, "normal": df_normal}
+                st.session_state.sim_compare = {
+                    "expectiminimax": df_ai,
+                    "normal": df_normal,
+                    "seed": compare_seed,
+                }
                 st.session_state.sim_df = None
             else:
                 df = run_simulation(
@@ -142,6 +261,7 @@ def main() -> None:
             df_ai = compare["expectiminimax"]
             df_normal = compare["normal"]
             if not df_ai.empty and not df_normal.empty:
+                st.caption(f"Both modes ran with the same seed: `{compare['seed']}`")
                 s_ai = summarize_results(df_ai)
                 s_normal = summarize_results(df_normal)
                 st.markdown("#### Side-by-side output")
@@ -173,6 +293,15 @@ def main() -> None:
                 cmp_plot["expectiminimax"] = cmp_plot["ai_delta"].cumsum()
                 cmp_plot["normal"] = df_normal["ai_delta"].cumsum()
                 st.line_chart(cmp_plot.set_index("hand")[["expectiminimax", "normal"]])
+
+                st.markdown("#### Hand-by-hand output (size by size)")
+                hand_cmp = df_ai[["hand", "ai_delta", "winner"]].rename(
+                    columns={"ai_delta": "expectiminimax_delta", "winner": "expectiminimax_winner"}
+                )
+                hand_cmp["normal_delta"] = df_normal["ai_delta"].values
+                hand_cmp["normal_winner"] = df_normal["winner"].values
+                hand_cmp["delta_gap"] = hand_cmp["expectiminimax_delta"] - hand_cmp["normal_delta"]
+                st.dataframe(hand_cmp, use_container_width=True)
 
         elif df is not None and not df.empty:
             summary = summarize_results(df)

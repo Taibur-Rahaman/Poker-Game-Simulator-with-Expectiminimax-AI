@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from typing import Dict, List, Literal
+from typing import Dict, List, Literal, Optional
 
 import pandas as pd
 
@@ -13,6 +13,7 @@ def run_simulation(
     max_depth: int = 2,
     num_samples: int = 64,
     mode: Literal["expectiminimax", "normal"] = "expectiminimax",
+    seed: Optional[int] = None,
 ) -> pd.DataFrame:
     """Run many automated games and collect metrics.
 
@@ -20,7 +21,7 @@ def run_simulation(
       - Seat 0: Expectiminimax AI
       - Seat 1: Random strategy
     """
-    game = PokerGame(num_players=2)
+    game = PokerGame(num_players=2, seed=seed)
     game.ai.max_depth = max_depth
     game.ai.num_samples = num_samples
     game.use_expectiminimax = mode == "expectiminimax"
