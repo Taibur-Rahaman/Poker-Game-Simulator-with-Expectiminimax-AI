@@ -803,7 +803,7 @@ def render_hand_rankings_cheatsheet_popover(button_label: str = "ⓘ") -> None:
     with st.popover(button_label, help="Poker hand rankings (reference)"):
         st.caption("Standard hands — strongest at the top.")
         if path.is_file():
-            st.image(str(path), use_container_width=True)
+            st.image(str(path), width="stretch")
         else:
             render_hand_rankings_panel()
 
