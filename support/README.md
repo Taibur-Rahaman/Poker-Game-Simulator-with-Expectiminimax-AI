@@ -1,9 +1,7 @@
-Support Folder
+Support folder (`support/`)
 
-This folder is reserved for supporting project code and helper scripts,
-as required by the course repository structure.
+Per course requirements, this folder holds project code besides the root-level `main.py` entrypoint and helper scripts.
 
-Current support file(s):
-- `submission_header_template.txt`
-
-You may add additional helper modules here as needed.
+- **`poker_ai/`** — application package (game engine, expectiminimax AI, Streamlit UI helpers, simulation).
+- **`generate_submission_docs.py`** — optional generator for drafts of course deliverables under `others/`.
+- **`submission_header_template.txt`** — header text template for IEEE-style PDF reports.

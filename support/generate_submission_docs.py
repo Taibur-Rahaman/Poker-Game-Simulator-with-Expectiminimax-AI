@@ -252,10 +252,10 @@ def make_pdf(path: Path, update_mode: bool):
 
 
 def main():
-    make_update_pptx(OUT / "Update presentation.pptx")
-    make_final_pptx(OUT / "Final presentation.pptx")
-    make_pdf(OUT / "Update report.pdf", update_mode=True)
-    make_pdf(OUT / "Final report.pdf", update_mode=False)
+    make_update_pptx(OUT / "update_presentation_group7.pptx")
+    make_final_pptx(OUT / "final_presentation_group7.pptx")
+    make_pdf(OUT / "update_report_group7.pdf", update_mode=True)
+    make_pdf(OUT / "final_report_group7.pdf", update_mode=False)
     print("Generated files in:", OUT)
 
 

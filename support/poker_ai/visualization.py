@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import html as html_module
+from pathlib import Path
 from typing import List
 
 import streamlit as st
 
 from .deck import Card
 from .game_engine import PokerGame
+from .outcome_text import format_last_hand_why_won
 
 
 def card_to_str(card: Card) -> str:
@@ -791,15 +793,40 @@ def render_table(game: PokerGame, beginner_mode: bool = False) -> None:
         st.caption("All-in: this player put their remaining stack in the pot.")
 
 
+def hand_rankings_cheatsheet_path() -> Path:
+    return Path(__file__).resolve().parent / "assets" / "poker_hand_rankings_cheatsheet.png"
+
+
+def render_hand_rankings_cheatsheet_popover(button_label: str = "ⓘ") -> None:
+    """Opens a cheatsheet image (fallback: text rankings) inside a Streamlit popover."""
+    path = hand_rankings_cheatsheet_path()
+    with st.popover(button_label, help="Poker hand rankings (reference)"):
+        st.caption("Standard hands — strongest at the top.")
+        if path.is_file():
+            st.image(str(path), use_container_width=True)
+        else:
+            render_hand_rankings_panel()
+
+
 def render_last_hand_report(game: PokerGame) -> None:
     """Text recap of the last completed hand (pot, winner, stacks, hole cards if shown)."""
-    st.markdown("#### Last hand report")
+    h1, h2 = st.columns([5, 1])
+    with h1:
+        st.markdown("#### Last hand report")
+    with h2:
+        st.markdown("")  # vertical align with heading
+        render_hand_rankings_cheatsheet_popover()
+
     summary = getattr(game, "last_hand_summary", None)
     if not summary:
         st.caption("_Play a hand to generate a report._")
         return
 
     names = {p.index: p.name for p in game.players}
+    why = format_last_hand_why_won(summary, names)
+    if why:
+        st.info(why)
+
     win_ix = summary.get("winners") or []
     win_names = ", ".join(names.get(i, f"Seat {i}") for i in win_ix) or "(none)"
     st.markdown(f"- **End stage:** `{summary['stage']}`")

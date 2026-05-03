@@ -123,7 +123,7 @@ Brief file map: **`deck.py`** — cards and shuffle; **`player.py`** — stacks,
 ### B7 | 7:30 – 8:40 (70 s) — Implementation / User Features — **Nashita**
 
 **Script:**  
-“**Play Game** runs AI versus opponent: **chips, pot, stage, board, winner**, and **AI root-action EV** display when enabled.  
+“**Play Game** runs AI versus opponent: **chips, pot, stage, board, winner**, and **AI root-action EV** display when enabled. **After results appear**, say **why** someone won — **either** everyone still in compared **best five-card hands** from hole plus board (**flush beats straight**, pair vs pair, kickers, and so on), **or**, if it ended earlier, **the other player folded**, so **no showdown**.”  
 
 **Kid Play** uses **simpler language** — useful for demos and teaching.  
 
@@ -134,7 +134,7 @@ Brief file map: **`deck.py`** — cards and shuffle; **`player.py`** — stacks,
 ### B8 | 8:40 – 9:05 (25 s) — Experimental Evaluation — **Talha**
 
 **Script:**  
-“In one **representative automated run**: **two hundred** hands, Expectiminimax versus baseline. Expectiminimax **win rate fifty-five percent** in that run — **higher** than baseline here. **Average decision time** about **fifty milliseconds** — **more compute** than a trivial policy.”
+“In one **representative automated run**: **two hundred** hands, Expectiminimax versus baseline. Expectiminimax **win rate fifty-five percent** in that run — **higher** than baseline here. **After you show those metrics**, briefly **why Expectiminimax is ahead here**: better **lookahead and sampling** picks actions with **higher estimated EV** on average versus the simpler policy — not Nash optimality, but **stronger decisions** under our setup. **Average decision time** about **fifty milliseconds** — **more compute** than a trivial policy.”
 
 **Note:** If slide numbers disagree with the **final report**, say explicitly: “This slide is **run configuration A**; the report cites **depth X / samples Y**” — avoid contradicting yourselves silently.
 
@@ -166,6 +166,11 @@ Brief file map: **`deck.py`** — cards and shuffle; **`player.py`** — stacks,
 
 **Play video (60 s).**
 
+**Winner explanation (voiceover *inside* the 60 s capture — ~10–15 s when the outcome is visible; not extra live time after the clip):**  
+- **Showdown:** “**[Name]** won because their **best five cards** beat the opponent’s — mention the **ranking type** visible on-screen if your capture shows it, e.g. **two pair over one pair**, or **higher kicker**.”  
+- **Fold win:** “**[Name]** took the pot because the **other player folded** — **no cards compared**.”  
+- **Split / tie (if shown):** “**Pot split** — same **best hand** category and strength.”
+
 ---
 
 ## 6. Part D — GitHub walkthrough (10:30 – 14:30)
@@ -176,7 +181,7 @@ Brief file map: **`deck.py`** — cards and shuffle; **`player.py`** — stacks,
 |------|---------|-------------------|
 | **10:30 – 11:05** | **Kazi** | Repo **home**. **README** — name, setup, run command (`requirements.txt`, `main.py`). Open **`main.py`** — tabs / entry (**~10–15 s**). |
 | **11:05 – 11:35** | **Talha** | **Commits** history — scroll to show activity **over time**, **multiple authors** if applicable. One line: “continuous teamwork.” |
-| **11:35 – 12:25** | **Kazi** | **`poker_ai/game_engine.py`** (adjust path if different) — top / middle / bottom scroll: betting loop, streets, showdown. |
+| **11:35 – 12:25** | **Kazi** | **`support/poker_ai/game_engine.py`** — top / middle / bottom scroll: betting loop, streets, showdown. |
 | **12:25 – 13:05** | **Sabbir** | **`expectiminimax.py`** — MAX/MIN/chance structure, recursion depth, sampling. |
 | **13:05 – 13:35** | **Talha** | **`evaluation.py`**; peek **`visualization.py`** if used; **`poker_rules.py`** or **`deck.py`** — brief. |
 | **13:35 – 14:10** | **Nashita** | **`kid_ui.py`**, **`player.py`**; folders **`data/`**, **`support/`**, **`others/`** (PPTX, PDF, video). **`requirements.txt`**. |
@@ -212,7 +217,7 @@ Brief file map: **`deck.py`** — cards and shuffle; **`player.py`** — stacks,
 4. System Architecture — layers + data flow  
 5. Game Flow and Core Modules — streets + file list  
 6. Expectiminimax — MAX / MIN / CHANCE / MC / root choice  
-7. Implementation — Play Game, Kid Play, Simulation  
+7. Implementation — Play Game, Kid Play, Simulation (after results: **why** the winner won — showdown vs fold)  
 8. Experimental Evaluation — N hands, win rate, decision time  
 9. What the Results Tell Us — quality vs cost  
 10. (Optional) GitHub tree — or rely on live walk only  
@@ -234,4 +239,4 @@ Brief file map: **`deck.py`** — cards and shuffle; **`player.py`** — stacks,
 
 ---
 
-*Prepared for Group 7 final presentation script practice. Adjust file paths (`poker_ai/...`) to match the repository layout if names differ.*
+*Prepared for Group 7 final presentation script practice; code paths are under `support/poker_ai/`.*

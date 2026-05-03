@@ -18,30 +18,38 @@ The system includes:
 - **UI**: Streamlit
 - **Core libs**: `numpy`, `pandas`, `matplotlib`
 
-### Project Structure
+### Repository layout (course requirements)
+
+Required top-level layout:
+
+- **`main.py`** — primary entry (`streamlit run main.py`).
+- **`README.md`**, **`requirements.txt`**, **`data/`**, **`support/`**, **`others/`**.
+
+Application code lives under **`support/`** (with `support` added to `sys.path` automatically from `main.py`):
 
 ```text
-poker_ai/
-  __init__.py
-  deck.py            # Card and deck utilities
-  player.py          # Player state and strategies
-  poker_rules.py     # Hand evaluation and comparison
-  game_engine.py     # Game flow: dealing, betting, showdown
-  expectiminimax.py  # Expectiminimax AI and search state
-  evaluation.py      # Simulation and metrics collection
-  visualization.py   # Streamlit rendering helpers
+support/poker_ai/
+  deck.py           # Card and deck utilities
+  player.py         # Player state and strategies
+  poker_rules.py    # Hand evaluation and comparison
+  game_engine.py    # Game flow: dealing, betting, showdown
+  expectiminimax.py # Expectiminimax AI and search state
+  evaluation.py     # Simulation and metrics collection
+  visualization.py  # Streamlit rendering helpers
+  kid_ui.py         # Interactive “Kid mode” UI
+  kid_layer.py      # Human-vs-AI play orchestration
 
-main.py              # Streamlit app entry point
-requirements.txt
-README.md
+main.py             # Launches Streamlit
 ```
+
+Deliverables under **`others/`** use the filenames in `others/README_REQUIRED_FILES.md`, e.g. `final_report_group7.pdf`, `demo_video_1min_group7.mp4`, etc.
 
 ### How to Install and Run
 
 1. **Create / activate a virtual environment (recommended)**
 
 ```bash
-cd cse327-poker-ai
+cd cse440-poker-ai   # clone directory name may vary
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 ```
@@ -51,6 +59,8 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
 ```bash
 pip install -r requirements.txt
 ```
+
+(Optional, only if you run `support/generate_submission_docs.py`: `pip install python-pptx reportlab`)
 
 3. **Run the Streamlit app**
 

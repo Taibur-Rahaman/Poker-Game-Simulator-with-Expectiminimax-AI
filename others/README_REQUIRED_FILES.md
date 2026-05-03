@@ -1,4 +1,4 @@
-23rd Class Required Files (Place these files in this `others/` folder)
+23rd Class Required Files (place in this **`others/`** folder exactly as mandated by the course manual)
 
 1) Final presentation file
    - Suggested name: `final_presentation_group7.pptx`

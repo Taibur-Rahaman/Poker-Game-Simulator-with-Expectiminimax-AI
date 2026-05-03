@@ -1,15 +1,40 @@
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+# Repository layout required by course: runnable `main.py` at repo root,
+# packages under `support/`.
+_REPO = Path(__file__).resolve().parent
+_SUPPORT_DIR = _REPO / "support"
+if _SUPPORT_DIR.is_dir():
+    sd = str(_SUPPORT_DIR)
+    if sd not in sys.path:
+        sys.path.insert(0, sd)
+
 import streamlit as st
 import time
 
 from poker_ai.evaluation import run_simulation, summarize_results
 from poker_ai.game_engine import PokerGame
 from poker_ai.kid_ui import render_kid_play_tab
-from poker_ai.visualization import inject_styles, render_last_hand_report, render_table
+from poker_ai.outcome_text import format_last_hand_why_won
+from poker_ai.visualization import (
+    inject_styles,
+    render_hand_rankings_cheatsheet_popover,
+    render_last_hand_report,
+    render_table,
+)
 
 
 def render_new_player_help(game: PokerGame) -> None:
     """Right-side help panel for users who do not know poker."""
-    st.markdown("#### New to poker? Start here")
+    np1, np2 = st.columns([5, 1])
+    with np1:
+        st.markdown("#### New to poker? Start here")
+    with np2:
+        st.markdown("")
+        render_hand_rankings_cheatsheet_popover()
     with st.expander("Quick guide: how this game works", expanded=True):
         st.markdown(
             """
@@ -191,6 +216,12 @@ def main() -> None:
 
             if "last_winners" in st.session_state:
                 st.markdown("**Last hand winners:** " + ", ".join(st.session_state.last_winners))
+                summ = getattr(game, "last_hand_summary", None)
+                if summ:
+                    names = {p.index: p.name for p in game.players}
+                    why = format_last_hand_why_won(summ, names)
+                    if why:
+                        st.caption(why)
 
             st.markdown("#### Hand activity (both sides)")
             action_log = getattr(game, "hand_action_log", [])

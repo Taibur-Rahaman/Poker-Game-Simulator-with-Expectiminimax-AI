@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import html as html_module
+from html import escape as html_escape
 from typing import List, cast
 
 import streamlit as st
 
 from .deck import Card
 from .game_engine import PokerGame
+from .visualization import render_hand_rankings_cheatsheet_popover
 from .kid_layer import (
     KidChoice,
     coach_confidence_level,
@@ -355,11 +357,15 @@ def _render_result_screen(game: PokerGame, human_seat: int) -> None:
     show_holes = str(summ.get("stage")) == "showdown"
     st.markdown(_render_kid_table_html(game, human_seat=human_seat, show_opponent_holes=show_holes), unsafe_allow_html=True)
 
+    _, kid_pop = st.columns([4, 1])
+    with kid_pop:
+        render_hand_rankings_cheatsheet_popover()
+
     st.markdown(
         f"""
 <div class="kid-result-card">
   <div class="kid-result-title">{kid_result_headline(game, human_seat)}</div>
-  <div class="kid-result-body">{kid_result_explanation(game, human_seat)}</div>
+  <div class="kid-result-body">{html_escape(kid_result_explanation(game, human_seat))}</div>
 </div>
 """,
         unsafe_allow_html=True,

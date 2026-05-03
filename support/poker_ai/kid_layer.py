@@ -8,6 +8,7 @@ from typing import Dict, List, Literal, Optional, Tuple
 from .deck import Card, SUITS, RANKS
 from .expectiminimax import ExpectiminimaxAI, SearchGameState
 from .game_engine import PokerGame
+from .outcome_text import format_last_hand_why_won
 from .player import Action
 from .poker_rules import evaluate_7card_hand
 
@@ -216,17 +217,12 @@ def kid_result_headline(game: PokerGame, human_seat: int) -> str:
 
 
 def kid_result_explanation(game: PokerGame, human_seat: int) -> str:
-    """Plain explanation without poker jargon."""
+    """Plain explanation of why the pot went where it did (Kid Play result card)."""
     summ = getattr(game, "last_hand_summary", None)
     if not summ:
         return ""
-    human = game.players[human_seat]
-    w = summ.get("winners") or []
-    if human_seat in w:
-        return "You had the better cards when everything was shown, or Buddy gave up."
-    if human.has_folded:
-        return "You chose to give up, so Buddy took the pile in the middle."
-    return "When all the middle cards were shown, Buddy’s side was higher than yours."
+    names = {p.index: p.name for p in game.players}
+    return format_last_hand_why_won(summ, names, tone="kid")
 
 
 def kid_simple_outcome_line(game: PokerGame, human_seat: int) -> str:
