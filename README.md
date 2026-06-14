@@ -156,3 +156,6 @@ These choices can be clearly discussed as design trade‑offs in a report.
   - Russell & Norvig, *Artificial Intelligence: A Modern Approach*.
   - Various academic works on poker AI and imperfect‑information games.
 
+## Author
+
+**Md Taibur Rahaman** — [GitHub](https://github.com/Taibur-Rahaman)
